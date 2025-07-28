@@ -5,6 +5,7 @@ const MAP_NUM_COLS = 15;
 const WINDOW_WIDTH = MAP_NUM_COLS * TILE_SIZE;
 const WINDOW_HEIGHT = MAP_NUM_ROWS * TILE_SIZE;
 
+const MOUSE_SENSITIVITY = 0.002;
 let useMouseLook = false;
 
 class Map {
@@ -25,13 +26,13 @@ class Map {
     }
     
     render() {
-        for (var i = 0; i < MAP_NUM_ROWS; i++)
+        for (let i = 0; i < MAP_NUM_ROWS; i++)
         {
-            for (var j = 0; j < MAP_NUM_COLS; j++)
+            for (let j = 0; j < MAP_NUM_COLS; j++)
             {
-                var tileX = j * TILE_SIZE;
-                var tileY = i * TILE_SIZE;
-                var tileColor = this.grid[i][j] == 1 ? "#222" : "#fff";
+                let tileX = j * TILE_SIZE;
+                let tileY = i * TILE_SIZE;
+                let tileColor = this.grid[i][j] == 1 ? "#222" : "#fff";
                 stroke("#222");
                 fill(tileColor);
                 rect(tileX,tileY, TILE_SIZE, TILE_SIZE);
@@ -89,8 +90,8 @@ class Player {
     }
 }
 
-var grid = new Map();
-var player = new Player();
+let grid = new Map();
+let player = new Player();
 
 function keyPressed() {
     let k = key.toLowerCase();  
@@ -98,6 +99,7 @@ function keyPressed() {
     if (k === "m")
     {
         useMouseLook = !useMouseLook;
+        player.turnDirection = 0;
 
         if (useMouseLook)
         {
@@ -110,13 +112,15 @@ function keyPressed() {
         }
     }
 
-    if (!useMouseLook)
-    {
         if (keyCode === UP_ARROW || k === 'w') {
             player.walkDirection = +1;
         } else if (keyCode === DOWN_ARROW || k === 's') {
             player.walkDirection = -1;
-        } else if (keyCode === RIGHT_ARROW || k === 'd') {
+        }
+
+    if (!useMouseLook)
+    {
+        if (keyCode === RIGHT_ARROW || k === 'd') {
             player.turnDirection = +1;
         } else if (keyCode === LEFT_ARROW || k === 'a') {
             player.turnDirection = -1;
@@ -124,16 +128,17 @@ function keyPressed() {
     }
 }
 
-function keyReleased(){
-    let k = key.toLowerCase(); 
+function keyReleased() {
+    let k = key.toLowerCase();
 
-    if (!useMouseLook)
-    {
-        if (keyCode === UP_ARROW || k === 'w') {
-            player.walkDirection = 0;
-        } else if (keyCode === DOWN_ARROW || k === 's') {
-            player.walkDirection = 0;
-        } else if (keyCode === RIGHT_ARROW || k === 'd') {
+    if (keyCode === UP_ARROW || k === 'w') {
+        player.walkDirection = 0;
+    } else if (keyCode === DOWN_ARROW || k === 's') {
+        player.walkDirection = 0;
+    }
+
+    if (!useMouseLook) {
+        if (keyCode === RIGHT_ARROW || k === 'd') {
             player.turnDirection = 0;
         } else if (keyCode === LEFT_ARROW || k === 'a') {
             player.turnDirection = 0;
@@ -150,7 +155,7 @@ function mousePressed() {
 
 document.addEventListener("mousemove", (e) => {
     if (useMouseLook && document.pointerLockElement === document.querySelector("canvas")) {
-        player.rotationAngle += e.movementX * 0.002; // adjust sensitivity as needed
+        player.rotationAngle += e.movementX * MOUSE_SENSITIVITY; // adjust sensitivity as needed
     }
 });
 
