@@ -86,25 +86,40 @@ class Player {
     }
     checkCollision(x,y,map)
     {
-        const gridX = Math.floor(x / TILE_SIZE);
-        const gridY = Math.floor(y / TILE_SIZE);
+        const buffer = this.radius;
+        const left = x - buffer;
+        const right = x + buffer;
+        const top = y - buffer;
+        const bottom = y + buffer;
 
-        if (gridX < 0 || gridX >= MAP_NUM_COLS || gridY < 0 || gridY >= MAP_NUM_ROWS)
-        {
-            return true;
+        const gridLeft = Math.floor(left / TILE_SIZE);
+        const gridRight = Math.floor(right / TILE_SIZE);
+        const gridTop = Math.floor(top / TILE_SIZE);
+        const gridBottom = Math.floor(bottom / TILE_SIZE);
+
+        if(
+        map.grid[gridTop][gridLeft] === 1 ||
+        map.grid[gridTop][gridRight] === 1 ||
+        map.grid[gridBottom][gridLeft] === 1 ||
+        map.grid[gridBottom][gridRight] === 1
+        ) {
+            return true;      
         }
+        return false;
 
-        return map.grid[gridY][gridX] === 1;
-            
-    }
+    }   
 }
-
 class Ray {
-    constructor() {
-        // TODO: ...
+    constructor(rayAngle) {
+        this.rayAngle = rayAngle;
     }
     render() {
-        // TODO: ...
+        stroke(255,0,0,5);
+        line(player.x, 
+            player.y, 
+            player.x + Math.cos(this.rayAngle) * 30,
+            player.y + Math.sin(this.rayAngle) * 30
+        )
     }
 }
 
@@ -229,6 +244,9 @@ function renderMouseLookStatus()
 function draw() {
     update()
     grid.render();
+    for (ray of rays) {
+        ray.render();
+    }
     player.render();
     renderMouseLookStatus();
 
