@@ -8,6 +8,12 @@ const WINDOW_HEIGHT = MAP_NUM_ROWS * TILE_SIZE;
 const MOUSE_SENSITIVITY = 0.002;
 let useMouseLook = false;
 
+const FOV_ANGLE = 60 * (Math.PI / 180)
+
+const WALL_STRIP_WIDTH = 1;
+const NUM_RAYS = WINDOW_WIDTH / WALL_STRIP_WIDTH;
+
+
 class Map {
     constructor() {
         this.grid = [
@@ -50,19 +56,22 @@ class Player {
         this.walkDirection = 0; // -1 if back, +1 if front
         this.rotationAngle = Math.PI / 2;
         this.moveSpeed = 2.0;
-        this.rotationSpeed = 2 * (Math.PI / 180); 
+        this.rotationSpeed = 3 * (Math.PI / 180); 
     }
     update(map){
         this.rotationAngle += this.turnDirection * this.rotationSpeed;
 
-        const nextX = this.x + (Math.cos(this.rotationAngle) * this.moveSpeed) * this.walkDirection;
-        const nextY = this.y + (Math.sin(this.rotationAngle) * this.moveSpeed) * this.walkDirection;
+        let nextX = this.x + (Math.cos(this.rotationAngle) * this.moveSpeed) * this.walkDirection;
+        let nextY = this.y + (Math.sin(this.rotationAngle) * this.moveSpeed) * this.walkDirection;
 
-        if (!this.checkCollision(nextX,nextY,map))
-        {
+        if(!this.checkCollision(nextX,this.y,map)) {
             this.x = nextX;
+        }
+
+        if(!this.checkCollision(this.x,nextY,map))
+        {
             this.y = nextY;
-        } 
+        }
     }
     render() {
         noStroke();
@@ -90,8 +99,18 @@ class Player {
     }
 }
 
+class Ray {
+    constructor() {
+        // TODO: ...
+    }
+    render() {
+        // TODO: ...
+    }
+}
+
 let grid = new Map();
 let player = new Player();
+let rays = [];
 
 function keyPressed() {
     let k = key.toLowerCase();  
@@ -160,6 +179,25 @@ document.addEventListener("mousemove", (e) => {
 });
 
 
+function castAllRays() {
+    let columnID = 0;
+    
+    // start first ray substracting half of the POV
+    let rayAngle = player.rotationAngle - (FOV_ANGLE / 2);
+
+    rays = []
+
+    // loop all columns casting the rays
+    for (let i = 0; i < NUM_RAYS ; i++) {
+        let ray = new Ray(rayAngle);
+        // ray.cast();
+        rays.push(ray);
+
+        rayAngle += FOV_ANGLE / NUM_RAYS;
+
+        columnID++;
+    }
+}
 
 
 function setup() {
@@ -168,6 +206,7 @@ function setup() {
 
 function update() {
     player.update(grid);
+    castAllRays();
 }
 
 function renderMouseLookStatus()
