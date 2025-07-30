@@ -14,6 +14,7 @@ const WALL_STRIP_WIDTH = 1;
 const NUM_RAYS = WINDOW_WIDTH / WALL_STRIP_WIDTH;
 
 
+
 class Map {
     constructor() {
         this.grid = [
@@ -77,12 +78,6 @@ class Player {
         noStroke();
         fill("red");
         circle(this.x, this.y, this.radius)
-        stroke("red");
-        line(this.x,
-             this.y,
-             this.x + Math.cos(this.rotationAngle) * 30,
-             this.y + Math.sin(this.rotationAngle) * 30
-            );
     }
     checkCollision(x,y,map)
     {
@@ -109,21 +104,121 @@ class Player {
 
     }   
 }
+
+function normalizeAngle(angle){
+    const PItwo = Math.PI * 2;
+    return (angle % PItwo + PItwo) % PItwo;
+}
+
 class Ray {
     constructor(rayAngle) {
-        this.rayAngle = rayAngle;
+        this.rayAngle = normalizeAngle(rayAngle);
+        this.wallHitX = 0;
+        this.wallHitY = 0;
+        this.distance = 0;
+        
+        this.isRayFacingDown = this.rayAngle > 0 && this.rayAngle < Math.PI;
+        this.isRayFacingUp = !this.isRayFacingDown;
+
+        this.isRayFacingRight = this.rayAngle < Math.PI / 2 || this.rayAngle > Math.PI * 1.5;
+        this.isRayFacingLeft = !this.isRayFacingRight;
     }
+    cast(columnID) {
+        const horizontalHit = this.#castHorizontal();
+        const verticalHit = this.#castVertical();
+
+        if (horizontalHit.distance < verticalHit.distance) {
+            this.wallHitX = horizontalHit.wallHitX;
+            this.wallHitY = horizontalHit.wallHitY;
+            this.distance = horizontalHit.distance;
+        } else {
+            this.wallHitX = verticalHit.wallHitX;
+            this.wallHitY = verticalHit.wallHitY;
+            this.distance = verticalHit.distance;
+        }
+    } 
+
+    #castHorizontal() {
+        const yIntercept = Math.floor(player.y / TILE_SIZE) * TILE_SIZE + (this.isRayFacingDown ? TILE_SIZE : 0);
+        const xIntercept = player.x + (yIntercept - player.y) / Math.tan(this.rayAngle)
+        
+        const dy = this.isRayFacingUp ? -TILE_SIZE : TILE_SIZE;
+        const dx = (this.isRayFacingLeft ? -1 : 1) * Math.abs( dy / Math.tan(this.rayAngle));
+        
+        let nextX = xIntercept;
+        let nextY = yIntercept;
+
+        while (nextX >= 0 && nextX < WINDOW_WIDTH && nextY >= 0 && nextY < WINDOW_HEIGHT)
+        {
+            const checkX = Math.floor(nextX / TILE_SIZE);
+            const checkY = Math.floor((nextY + (this.isRayFacingUp ? -1 : 0)) / TILE_SIZE);
+            
+            if (map.grid[checkY][checkX] === 1)
+            {
+                return {
+                    wallHitX: nextX,
+                    wallHitY: nextY,
+                    distance: Math.hypot(nextX - player.x, nextY - player.y)
+                };
+            }
+            else{
+                nextX += dx;
+                nextY += dy;
+            }
+        }
+        return {
+            wallHitX: nextX,
+            wallHitY: nextY,
+            distance: Infinity
+        };
+    }
+
+    #castVertical() {
+        const xIntercept = Math.floor(player.x / TILE_SIZE) * TILE_SIZE + (this.isRayFacingRight ? TILE_SIZE : 0);
+        const yIntercept = player.y + (xIntercept - player.x) * Math.tan(this.rayAngle);
+
+        const dx = this.isRayFacingLeft ? -TILE_SIZE : TILE_SIZE;
+        const dy = (this.isRayFacingUp ? -1 : 1) * Math.abs(dx * Math.tan(this.rayAngle));
+
+        let nextX = xIntercept;
+        let nextY = yIntercept;
+
+        while (nextX >= 0 && nextX < WINDOW_WIDTH && nextY >= 0 && nextY < WINDOW_HEIGHT)
+        {
+            const checkX = Math.floor((nextX + (this.isRayFacingLeft ? -1 : 0)) / TILE_SIZE);
+            const checkY = Math.floor(nextY / TILE_SIZE);
+
+            if (map.grid[checkY][checkX] === 1)
+            {
+                return {
+                    wallHitX: nextX,
+                    wallHitY: nextY,
+                    distance: Math.hypot(nextX - player.x, nextY - player.y)
+                };
+            } else {
+                nextX += dx;
+                nextY += dy;
+            }
+        }
+
+        return {
+            wallHitX: nextX,
+            wallHitY: nextY,
+            distance: Infinity
+        };
+    }
+
     render() {
         stroke(255,0,0,5);
         line(player.x, 
             player.y, 
-            player.x + Math.cos(this.rayAngle) * 30,
-            player.y + Math.sin(this.rayAngle) * 30
+            this.wallHitX,
+            this.wallHitY
         )
     }
 }
 
-let grid = new Map();
+let map = new Map();
 let player = new Player();
 let rays = [];
 
@@ -205,7 +300,7 @@ function castAllRays() {
     // loop all columns casting the rays
     for (let i = 0; i < NUM_RAYS ; i++) {
         let ray = new Ray(rayAngle);
-        // ray.cast();
+        ray.cast();
         rays.push(ray);
 
         rayAngle += FOV_ANGLE / NUM_RAYS;
@@ -220,7 +315,7 @@ function setup() {
 }
 
 function update() {
-    player.update(grid);
+    player.update(map);
     castAllRays();
 }
 
@@ -240,15 +335,22 @@ function renderMouseLookStatus()
 
     text("Mouse Look: " + (useMouseLook ? "ON" : "OFF") + "(Press M)" , 10,15);
 }
+function renderPlayerCordinates() {
+    textSize(12);
+    noStroke();
+    fill("white");
+    text("playerX: " + Math.floor(player.x) + "   playerY: " + Math.floor(player.y) , 200,15);
+}
 
 function draw() {
     update()
-    grid.render();
+    map.render();
     for (ray of rays) {
         ray.render();
     }
     player.render();
     renderMouseLookStatus();
+    renderPlayerCordinates();
 
 }
 
